@@ -23,7 +23,7 @@ export class ChatGateway implements OnGatewayInit {
   constructor(private readonly chatService: ChatService) {}
 
   afterInit(server: any) {
-    this.chatService.typingUsers$.subscribe(users => this.server.emit('typing_changed', users));
+    this.chatService.typingUsers$.subscribe(users => this.server.emit('get_all_typing', users));
   }
 
   @SubscribeMessage('all_users')
@@ -68,7 +68,7 @@ export class ChatGateway implements OnGatewayInit {
   @SubscribeMessage('start_typing')
   async onTypingStart(@MessageBody() user: User, @ConnectedSocket() socket: Socket) {
     console.log('StartedTyping', user);
-    const username = this.chatService.getUserFromSocket(socket.id).username;
+    const username = this.chatService.getUserFromSocket(socket.id).username; //huh ?
     this.chatService.handleUserTyping(username);
   }
 
