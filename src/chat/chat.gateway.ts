@@ -55,6 +55,9 @@ export class ChatGateway {
 
     const users = this.chatService.getAllUsers();
     this.server.emit('get_all_users', users);
+
+    const typingUsers = this.chatService.getAllTypingUsers();
+    this.server.emit('get_all_typing', typingUsers);
   }
 
   @SubscribeMessage('start_typing')

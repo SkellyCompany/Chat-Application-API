@@ -43,6 +43,10 @@ export class ChatService {
     return this.users;
   }
 
+  getAllTypingUsers(): Observable<string[]> {
+    return this.typingUsers$.value;
+  }
+
   connect(user: User) {
     this.users.push(user);
 
