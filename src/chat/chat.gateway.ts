@@ -1,6 +1,7 @@
 import {
   ConnectedSocket,
   MessageBody,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -15,11 +16,15 @@ const options = {
   }
 }
 @WebSocketGateway(options)
-export class ChatGateway {
+export class ChatGateway implements OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
   constructor(private readonly chatService: ChatService) {}
+
+  afterInit(server: any) {
+    this.chatService.typingUsers$.subscribe(users => this.server.emit('typing_changed', users));
+  }
 
   @SubscribeMessage('all_users')
   async allUsers(
