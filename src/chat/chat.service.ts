@@ -43,8 +43,8 @@ export class ChatService {
     return this.users;
   }
 
-  getAllTypingUsers(): Observable<string[]> {
-    return this.typingUsers$.value;
+  getAllTypingUsers(): string[] {
+    return this.typingUsers.value.map(u => u.username);
   }
 
   connect(user: User) {
