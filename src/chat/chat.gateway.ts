@@ -8,42 +8,69 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import User from '../entities/user';
-
-@WebSocketGateway(3000)
+const options = {
+  cors: {
+    origin: 'http://localhost:4200',
+    credentials: true
+  }
+}
+@WebSocketGateway(options)
 export class ChatGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly chatService: ChatService) {
-   
+  constructor(private readonly chatService: ChatService) {}
+
+  @SubscribeMessage('all_users')
+  async allUsers(
+    @ConnectedSocket() socket: Socket,
+  ) {
+    const users = this.chatService.getAllUsers();
+    this.server.emit('get_all_users', users);
   }
 
   @SubscribeMessage('new_message')
-  async saveMessage(@MessageBody() content: string, @ConnectedSocket() socket: Socket) {
-    const user = this.chatService.getUserFromSocket(socket);
+  async saveMessage(
+    @MessageBody() content: string,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    console.log('Message recieved', content);
+    const user = this.chatService.getUserFromSocket(socket.id);
     const message = this.chatService.saveMessage(content, user);
     this.server.emit('new_message', message);
   }
 
   @SubscribeMessage('join')
-  async connect(
-    @MessageBody() user: User,
-    @ConnectedSocket() socket: Socket,
-  ) {
-    const messages = this.chatService.connect(socket, user);
+  async connect(@MessageBody() username: string, @ConnectedSocket() socket: Socket) {
+
+    console.log('Joined', username);
+    const user = 
+      {socketId: socket.id, username: username, active: true} as User; 
+      //Essencially. We cant push a user object trough the backend since we dont know the socketID.
+      //Making an empty user seems to be a stupid decision.
+      // Instead i am creating a user object here and passing it to the service.
+    const messages = this.chatService.connect(user);
+    socket.emit('authenticated', user); // I crate an authentication as well. Its not necessary but I think its a cool thing to have in order to pretend we are actually authenticating users.
     socket.emit('get_all_messages', messages);
+
+    const users = this.chatService.getAllUsers();
+    this.server.emit('get_all_users', users);
   }
 
   @SubscribeMessage('start_typing')
-  async onTypingStart(@ConnectedSocket() socket: Socket) {
-    const username = this.chatService.getUserFromSocket(socket).username;
+  async onTypingStart(@MessageBody() user: User, @ConnectedSocket() socket: Socket) {
+    console.log('StartedTyping', user);
+    const username = this.chatService.getUserFromSocket(socket.id).username;
     this.chatService.handleUserTyping(username);
   }
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+    this.chatService.handleUserDisconnect(client.id);
+    const users = this.chatService.getAllUsers();
+    this.server.emit('get_all_users', users);
   }
-  
+
   handleConnection(client: Socket, ...args: any[]) {
     console.log(`Client connected: ${client.id}`);
   }
